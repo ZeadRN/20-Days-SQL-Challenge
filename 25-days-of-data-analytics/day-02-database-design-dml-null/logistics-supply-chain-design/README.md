@@ -1,143 +1,157 @@
-# Logistics and Supply Chain Database Design
+# Day 2 Project: Logistics & Supply Chain Database
 
-A learning project that models how a fictional distribution company buys goods, receives stock, accepts customer orders, and delivers products.
+I designed a database model for a fictional company that buys goods, stores them, and delivers them to shops. This project applies the fact and dimension tables introduced in class.
 
-**Project status:** Conceptual dimensional design. The SQL database and queries have not been implemented yet.
+**Status:** Database design completed as a learning draft. SQL implementation is planned.
 
-**Focus:** Business understanding, fact and dimension tables, table grain, relationships, and analytical questions.
+## The business
 
-## 1. Business Scenario
+**FlowLink** buys packaged goods from manufacturers and sells them to supermarkets.
 
-**FlowLink Distribution & Logistics** is a fictional company that buys packaged goods from manufacturers and sells them to supermarkets.
+A typical transaction looks like this:
 
-For example, FlowLink buys cartons of cooking oil from FreshOil Manufacturing, stores them in a warehouse, and sells them to City Mart. Drivers deliver the goods using company vehicles.
+1. FlowLink orders goods from a supplier.
+2. The supplier sends the goods to a warehouse.
+3. A shop places an order with FlowLink.
+4. FlowLink sends the goods using a driver and vehicle.
+5. The company checks how much stock remains.
 
-In this project:
+The supplier sells to FlowLink. The customer buys from FlowLink.
 
-- A **supplier** sells products to FlowLink.
-- A **customer** buys products from FlowLink.
-- A **warehouse** holds FlowLink's stock.
-- A **purchase order** records what FlowLink asks a supplier to provide.
-- A **goods receipt** records what actually arrives and is accepted.
-- A **sales order** records what a customer requests.
-- A **shipment** records goods dispatched to fulfill a customer order.
+## One example to follow
 
-FlowLink earns income from selling goods. It also has costs such as purchasing, transport, storage, and salaries. This first model covers quantities and agreed purchase and selling prices. It does not calculate complete business profit.
+FlowLink orders **100 cartons of cooking oil** from FreshOil Manufacturing at **BDT 1,000 per carton**.
 
-## 2. Business Process
+The supplier sends 60 cartons first and 40 later.
 
-```mermaid
-flowchart TD
-    A[FlowLink places a purchase order] --> B[Supplier sends goods]
-    B --> C[Warehouse records accepted goods]
-    C --> D[Stock becomes available]
-    E[Customer places a sales order] --> F[Warehouse reserves available stock]
-    D --> F
-    F --> G[Driver and vehicle are assigned]
-    G --> H[Goods are dispatched]
-    H --> I[Delivery result is recorded]
-    H --> J[Warehouse stock decreases]
-```
+City Mart then orders **30 cartons** at **BDT 1,200 per carton**. FlowLink sends 20 cartons with Hasan and the remaining 10 with Karim. Both deliveries succeed.
 
-An order and a physical movement are separate events. Ordering 100 cartons does not mean that 100 cartons have arrived. A customer ordering 30 cartons does not mean that all 30 have been delivered.
+| Business activity | What happened |
+| --- | --- |
+| Purchase order | 100 cartons ordered |
+| Goods receipts | 60 cartons received, then 40 |
+| Customer order | 30 cartons requested |
+| Shipments | 20 cartons sent, then 10 |
+| Remaining stock | 70 cartons |
 
-## 3. Project Scope and Assumptions
+The stock calculation assumes there was no opening stock and no other stock movement.
 
-This design covers purchasing, goods receiving, customer orders, outbound shipments, and daily stock reporting.
+**The important difference:** an order records a request. A receipt or shipment records what actually moved.
 
-The following rules are assumptions for the fictional business:
+## The database structure
 
-- FlowLink owns the stock that it buys.
-- An order can contain several product lines.
-- Each purchase-order line has one planned destination warehouse.
-- A supplier can fulfill a purchase-order line through several receipts.
-- A sales-order line can be fulfilled through several shipments.
-- Each shipment serves one sales order, leaves one warehouse, and uses one driver and vehicle.
-- Shipment facts are created after dispatch, when a driver and vehicle are assigned.
-- Each shipment line has one final delivery outcome. Repeated delivery attempts are outside this version.
-- Each product has one defined stock unit. The example uses cartons throughout.
-- Daily inventory records show stock at the end of the day.
-- All example amounts are in Bangladeshi taka (BDT).
+**Dimensions describe the business. Facts record its activities and quantities.**
 
-Returns, damaged goods, warehouse transfers, payments, taxes, batch tracking, and driver changes during a journey are outside this first version.
+The model uses these shared dimension tables:
 
-## 4. Why Fact and Dimension Tables?
+| Dimension | Details stored |
+| --- | --- |
+| DimSupplier | SupplierKey, SupplierName, Phone |
+| DimProduct | ProductKey, ProductName, Category, UnitOfMeasure |
+| DimCustomer | CustomerKey, CustomerName, Phone, City |
+| DimWarehouse | WarehouseKey, WarehouseName, Address |
+| DimDriver | DriverKey, DriverName, Phone |
+| DimVehicle | VehicleKey, RegistrationNumber, VehicleType |
+| DimDate | DateKey, FullDate, MonthNumber, YearNumber |
 
-**Dimension tables describe who, what, where, and when.**
+Each table's Key is its primary key. For example, DriverKey identifies one driver.
 
-For example, DimSupplier stores a supplier's name and contact information.
+The diagrams below show one process at a time. A repeated name such as DimProduct means the **same table**, not a new copy.
 
-**Fact tables record business activities or measured states.**
+**PK** identifies a row. **FK** connects it to a dimension. Each dimension can connect to many fact rows.
 
-For example, FactGoodsReceiptLine records how much of an ordered product was accepted into a warehouse.
+## 1. Purchasing: What did we order?
 
-This is an analytical model with several fact tables sharing dimensions. It is designed for reporting and learning. It is not a complete operational order-processing application.
+**One row = one product line on a purchase order.**
 
-## 5. ER Diagrams
-
-The design is shown in five smaller diagrams, one for each business activity.
-
-Repeated dimension names refer to the **same shared table**. For example, DimProduct is one table used across purchasing, receiving, sales, shipments, and inventory.
-
-**Reading the relationships:** One dimension record can connect to many fact rows. Each fact row refers to one record in each connected dimension.
-
-### 5.1 Purchasing — What did we order?
-
-**One fact row represents one product line on a purchase order.**
-
-Example: FlowLink orders 100 cartons of oil from FreshOil for its Dhaka warehouse.
+Our example has one line: 100 cartons of oil at BDT 1,000 each.
 
 ```mermaid
 erDiagram
-    direction LR
+    direction TB
     DimSupplier ||--o{ FactPurchaseOrderLine : supplier
     DimProduct ||--o{ FactPurchaseOrderLine : product
     DimWarehouse ||--o{ FactPurchaseOrderLine : destination
     DimDate ||--o{ FactPurchaseOrderLine : order_date
+    FactPurchaseOrderLine {
+        int PurchaseOrderLineKey PK
+        string PurchaseOrderNumber
+        int LineNumber
+        int SupplierKey FK
+        int ProductKey FK
+        int WarehouseKey FK
+        int OrderDateKey FK
+        int QuantityOrdered
+        decimal PurchaseUnitPrice
+    }
 ```
 
-**Measurements:** QuantityOrdered and PurchaseUnitPrice.
+**Business question:** How much did we order from each supplier?
 
-### 5.2 Receiving — What actually arrived?
+## 2. Receiving: What arrived?
 
-**One fact row represents one receipt line fulfilling a purchase-order line.**
+**One row = one receipt line for a purchase-order line.**
 
-Example: 60 cartons arrive first. The remaining 40 arrive later. These are two separate receipt records.
+Our example needs two rows: one for 60 cartons and one for 40 cartons. Both refer to the same purchase-order line.
 
 ```mermaid
 erDiagram
-    direction LR
+    direction TB
     DimSupplier ||--o{ FactGoodsReceiptLine : supplier
     DimProduct ||--o{ FactGoodsReceiptLine : product
-    DimWarehouse ||--o{ FactGoodsReceiptLine : received_at
+    DimWarehouse ||--o{ FactGoodsReceiptLine : warehouse
     DimDate ||--o{ FactGoodsReceiptLine : receipt_date
+    FactGoodsReceiptLine {
+        int ReceiptLineKey PK
+        string ReceiptNumber
+        int ReceiptLineNumber
+        string PurchaseOrderNumber
+        int PurchaseOrderLineNumber
+        int SupplierKey FK
+        int ProductKey FK
+        int WarehouseKey FK
+        int ReceiptDateKey FK
+        int QuantityAccepted
+    }
 ```
 
-**Measurement:** QuantityAccepted.
+**Business question:** How much of our order is still waiting to arrive?
 
-The purchase-order number and line number identify which ordered line the receipt fulfills.
+After the first receipt: 100 ordered - 60 received = **40 cartons outstanding**.
 
-### 5.3 Customer Orders — What does the customer want?
+## 3. Sales: What did the customer request?
 
-**One fact row represents one product line on a customer order.**
+**One row = one product line on a customer order.**
 
-Example: City Mart orders 30 cartons of oil at BDT 1,200 per carton.
+City Mart's order creates one row for 30 cartons at BDT 1,200 each.
 
 ```mermaid
 erDiagram
-    direction LR
+    direction TB
     DimCustomer ||--o{ FactSalesOrderLine : customer
     DimProduct ||--o{ FactSalesOrderLine : product
     DimDate ||--o{ FactSalesOrderLine : order_date
+    FactSalesOrderLine {
+        int SalesOrderLineKey PK
+        string SalesOrderNumber
+        int LineNumber
+        int CustomerKey FK
+        int ProductKey FK
+        int OrderDateKey FK
+        int QuantityOrdered
+        decimal SellingUnitPrice
+    }
 ```
 
-**Measurements:** QuantityOrdered and SellingUnitPrice.
+**Business question:** Which products do customers order most?
 
-### 5.4 Shipping — What did we send?
+City Mart's ordered amount is 30 x 1,200 = **BDT 36,000**. This is an order amount, not proof of payment or recognized revenue.
 
-**One fact row represents one shipment line fulfilling a sales-order line.**
+## 4. Shipping: What did we send?
 
-Example: Hasan dispatches 20 cartons first. Karim dispatches the remaining 10 later.
+**One row = one product line within a shipment, fulfilling one sales-order line.**
+
+Our example creates two rows: Hasan sends 20 cartons, and Karim sends 10 later.
 
 ```mermaid
 erDiagram
@@ -148,297 +162,94 @@ erDiagram
     DimDriver ||--o{ FactShipmentLine : driver
     DimVehicle ||--o{ FactShipmentLine : vehicle
     DimDate ||--o{ FactShipmentLine : dispatch_date
+    FactShipmentLine {
+        int ShipmentLineKey PK
+        string ShipmentNumber
+        int ShipmentLineNumber
+        string SalesOrderNumber
+        int SalesOrderLineNumber
+        int CustomerKey FK
+        int ProductKey FK
+        int WarehouseKey FK
+        int DriverKey FK
+        int VehicleKey FK
+        int DispatchDateKey FK
+        int QuantityDispatched
+        int QuantityDelivered
+        string DeliveryStatus
+    }
 ```
 
-**Measurements:** QuantityDispatched and QuantityDelivered.
+**Business question:** Which orders are not fully delivered?
 
-The sales-order number and line number identify which customer order line is being fulfilled.
+After the first successful delivery: 30 ordered - 20 delivered = **10 cartons still to deliver**.
 
-A shipment containing several products has several fact rows sharing the same shipment number.
+QuantityDelivered stays unknown until the delivery result is recorded. A shipment with several products has several rows sharing the same ShipmentNumber.
 
-### 5.5 Inventory — What stock remains?
+## 5. Inventory: What stock remains?
 
-**One fact row represents one product at one warehouse at the end of one date.**
-
-Example: After receiving 100 cartons and dispatching 30, the warehouse has 70 cartons left, assuming no other stock movements.
+**One row = one product at one warehouse at the end of one day.**
 
 ```mermaid
 erDiagram
-    direction LR
+    direction TB
     DimProduct ||--o{ FactInventoryDaily : product
     DimWarehouse ||--o{ FactInventoryDaily : warehouse
-    DimDate ||--o{ FactInventoryDaily : snapshot_date
+    DimDate ||--o{ FactInventoryDaily : closing_date
+    FactInventoryDaily {
+        int DateKey PK, FK
+        int WarehouseKey PK, FK
+        int ProductKey PK, FK
+        int QuantityOnHand
+        int QuantityReserved
+    }
 ```
 
-**Measurements:** QuantityOnHand and QuantityReserved.
-
-AvailableQuantity = QuantityOnHand - QuantityReserved.
-
-The following sections list the table columns, primary keys, and foreign keys.
- 
-
-## 6. Dimension Tables
-
-| Table | What one row describes | Proposed columns |
-| --- | --- | --- |
-| DimSupplier | One supplier | SupplierKey (PK), SupplierName, Phone, City |
-| DimProduct | One product | ProductKey (PK), SKU, ProductName, Category, UnitOfMeasure |
-| DimCustomer | One business customer | CustomerKey (PK), CustomerName, BusinessType, Phone, City |
-| DimWarehouse | One warehouse | WarehouseKey (PK), WarehouseName, City, Address |
-| DimDriver | One driver | DriverKey (PK), DriverName, Phone, LicenseNumber |
-| DimVehicle | One vehicle | VehicleKey (PK), RegistrationNumber, VehicleType, CapacityKg |
-| DimDate | One calendar date | DateKey (PK), FullDate, MonthNumber, QuarterNumber, YearNumber |
+The three keys together identify a row.
 
-Names, phone numbers, addresses, and identifiers such as registration numbers use text types. Quantities use integers for this carton-based example. Prices and capacity use decimal types. Dates use date types.
+- **QuantityOnHand:** Goods physically in the warehouse.
+- **QuantityReserved:** Goods set aside for orders but still in the warehouse.
+- **Available stock:** QuantityOnHand - QuantityReserved.
 
-The initial version keeps current descriptive details. Preserving historical versions of dimension attributes is a future improvement.
+After receiving 100 cartons and dispatching 30, FlowLink has **70 cartons on hand**. Stock leaves the warehouse balance at dispatch, not when delivery is confirmed.
 
-## 7. Fact Tables and Their Grain
+**Business question:** Which warehouse has stock available for a new order?
 
-**Grain means what one row represents.** Defining this first helps prevent mixing different kinds of information in the same table.
+## Rules for this first design
 
-| Fact table | One row represents | Main measurements |
-| --- | --- | --- |
-| FactPurchaseOrderLine | One product line on one purchase order | QuantityOrdered, PurchaseUnitPrice |
-| FactGoodsReceiptLine | One receipt line fulfilling one purchase-order line at one warehouse | QuantityAccepted |
-| FactSalesOrderLine | One product line on one customer sales order | QuantityOrdered, SellingUnitPrice |
-| FactShipmentLine | One shipment line fulfilling one sales-order line | QuantityDispatched, QuantityDelivered |
-| FactInventoryDaily | One product at one warehouse at the end of one date | QuantityOnHand, QuantityReserved |
+- FlowLink owns the goods it buys.
+- Each purchase-order line has one planned receiving warehouse.
+- Each shipment serves one sales order and uses one warehouse, driver, and vehicle.
+- All products have a defined stock unit. This example uses cartons.
+- Purchase and sales orders can be fulfilled in parts.
+- Receipts must match their purchase-order lines. Shipment lines must match their sales-order lines.
+- Quantities cannot exceed the related ordered quantities in this version.
+- Returns, damaged goods, transfers, payments, and repeated delivery attempts are future additions.
 
-### FactPurchaseOrderLine
+This is a reporting model. A working system also needs rules for safely processing transactions and checking stock.
 
-- PurchaseOrderLineKey — PK
-- PurchaseOrderNumber
-- LineNumber
-- SupplierKey — FK to DimSupplier
-- ProductKey — FK to DimProduct
-- WarehouseKey — FK to DimWarehouse
-- OrderDateKey — FK to DimDate
-- QuantityOrdered
-- PurchaseUnitPrice
+## What I learned
 
-The combination of PurchaseOrderNumber and LineNumber must be unique. Order numbers are assumed to be unique within this company.
+**Define the row before choosing the columns.** One shipment is different from one product line in a shipment. This definition is called the table's grain.
 
-### FactGoodsReceiptLine
+**Keep requests separate from physical events.** Ordered, received, dispatched, and delivered quantities can differ.
 
-- ReceiptLineKey — PK
-- ReceiptNumber
-- ReceiptLineNumber
-- PurchaseOrderNumber
-- PurchaseOrderLineNumber
-- SupplierKey — FK to DimSupplier
-- ProductKey — FK to DimProduct
-- WarehouseKey — FK to DimWarehouse
-- ReceiptDateKey — FK to DimDate
-- QuantityAccepted
+**Avoid double counting.** Total receipts by purchase-order line before comparing them with ordered quantities. Do the same for shipments and sales-order lines.
 
-The combination of ReceiptNumber and ReceiptLineNumber must be unique. Purchase-order references identify which ordered line the receipt fulfills.
+**Count shipment numbers, not shipment rows.** One shipment can contain several products.
 
-### FactSalesOrderLine
+**Do not add stock balances across dates.** Having 70 cartons on Monday and the same 70 on Tuesday does not mean there are 140 cartons.
 
-- SalesOrderLineKey — PK
-- SalesOrderNumber
-- LineNumber
-- CustomerKey — FK to DimCustomer
-- ProductKey — FK to DimProduct
-- OrderDateKey — FK to DimDate
-- QuantityOrdered
-- SellingUnitPrice
+## Next step
 
-The combination of SalesOrderNumber and LineNumber must be unique.
+Implement the tables in SQL, add the example records, and check that queries return:
 
-### FactShipmentLine
+- 100 cartons ordered from the supplier.
+- 100 cartons received.
+- 30 cartons ordered by City Mart.
+- 30 cartons dispatched and delivered.
+- 70 cartons remaining in the warehouse.
 
-- ShipmentLineKey — PK
-- ShipmentNumber
-- ShipmentLineNumber
-- SalesOrderNumber
-- SalesOrderLineNumber
-- CustomerKey — FK to DimCustomer
-- ProductKey — FK to DimProduct
-- WarehouseKey — FK to DimWarehouse
-- DriverKey — FK to DimDriver
-- VehicleKey — FK to DimVehicle
-- DispatchDateKey — FK to DimDate
-- QuantityDispatched
-- QuantityDelivered — unknown until the outcome is recorded
-- DeliveryStatus — for example, InTransit or Delivered
+## Learning sources
 
-The combination of ShipmentNumber and ShipmentLineNumber must be unique. Sales-order references identify which requested line the shipment fulfills.
-
-A shipment with two products has at least two rows. Its shipment number repeats across those rows.
-
-This fact starts at dispatch and is updated with the delivery outcome. Unknown delivered quantity should not be treated as a confirmed zero.
-
-### FactInventoryDaily
-
-- DateKey — PK component and FK to DimDate
-- WarehouseKey — PK component and FK to DimWarehouse
-- ProductKey — PK component and FK to DimProduct
-- QuantityOnHand
-- QuantityReserved
-
-The three keys together form the primary key. There is only one closing-stock row for each date, warehouse, and product combination.
-
-AvailableQuantity = QuantityOnHand - QuantityReserved.
-
-This table stores a daily snapshot. It does not replace a detailed stock-movement ledger.
-
-### How the business events connect
-
-Purchase-order and sales-order references connect the stages of the process. In a reporting model, these references can be retained as business identifiers rather than drawing direct foreign-key links between every fact table.
-
-The data-loading process must check that receipt and shipment references exist and match the correct product, supplier or customer, and warehouse rules. The dimension foreign keys alone cannot prove this.
-
-## 8. Worked Example
-
-FlowLink orders 100 cartons of cooking oil from FreshOil Manufacturing at BDT 1,000 per carton.
-
-### Purchase order
-
-| PurchaseOrderNumber | LineNumber | Product | QuantityOrdered | PurchaseUnitPrice |
-| --- | ---: | --- | ---: | ---: |
-| PO-101 | 1 | Oil carton | 100 | 1000 |
-
-Ordered purchase amount: **100 x 1,000 = BDT 100,000**. This describes the order commitment, not a payment or invoice.
-
-### Goods receipts
-
-The supplier delivers in two batches.
-
-| ReceiptNumber | ReceiptLineNumber | PurchaseOrderNumber | PurchaseOrderLineNumber | Warehouse | QuantityAccepted |
-| --- | ---: | --- | ---: | --- | ---: |
-| GR-001 | 1 | PO-101 | 1 | Dhaka | 60 |
-| GR-002 | 1 | PO-101 | 1 | Dhaka | 40 |
-
-After the first receipt, 40 cartons remain outstanding. After the second, the order line is fully received.
-
-### Customer order
-
-City Mart orders 30 cartons at BDT 1,200 per carton.
-
-| SalesOrderNumber | LineNumber | Customer | Product | QuantityOrdered | SellingUnitPrice |
-| --- | ---: | --- | --- | ---: | ---: |
-| SO-201 | 1 | City Mart | Oil carton | 30 | 1200 |
-
-Ordered sales amount: **30 x 1,200 = BDT 36,000**. An order amount is not automatically recognized revenue.
-
-### Shipments
-
-FlowLink fulfills the order in two shipments, both successfully delivered.
-
-| ShipmentNumber | ShipmentLineNumber | SalesOrderNumber | SalesOrderLineNumber | Driver | QuantityDispatched | QuantityDelivered |
-| --- | ---: | --- | ---: | --- | ---: | ---: |
-| SH-301 | 1 | SO-201 | 1 | Hasan | 20 | 20 |
-| SH-302 | 1 | SO-201 | 1 | Karim | 10 | 10 |
-
-After the first delivery, 10 cartons remain to be delivered. After the second, the order is fully delivered.
-
-### Closing inventory
-
-Assume opening stock was zero, both receipts arrived before dispatch, and no other stock movements occurred.
-
-Closing stock = 0 + 60 + 40 - 20 - 10 = **70 cartons**.
-
-| Snapshot | Warehouse | Product | QuantityOnHand | QuantityReserved | AvailableQuantity |
-| --- | --- | --- | ---: | ---: | ---: |
-| End of example day | Dhaka | Oil carton | 70 | 0 | 70 |
-
-Warehouse stock decreases when goods leave the warehouse, even if they have not yet reached the customer.
-
-## 9. Questions the Model Can Answer
-
-| Business question | Required data |
-| --- | --- |
-| How much did we order from each supplier? | Purchase-order fact and supplier dimension |
-| Which purchase-order lines are not fully received? | Ordered quantities compared with accepted quantities |
-| Which products do customers order most? | Sales-order fact and product dimension |
-| Which customer orders are not fully delivered? | Ordered quantities compared with confirmed delivered quantities |
-| Where is stock available for new orders? | Daily inventory, warehouse, and product dimensions |
-| How many shipments did each driver handle? | Distinct shipment numbers grouped by driver |
-| How did ordered sales amounts change by month? | Sales-order fact and date dimension |
-
-This version cannot fully explain stock discrepancies or calculate net profit. Those questions require additional movements and cost data.
-
-## 10. Important Rules for Analysis
-
-### Do not double-count orders
-
-One purchase-order line may match several receipt rows. Joining them directly and summing ordered quantity would repeat that quantity.
-
-First total the receipts by purchase-order number and line number. Then compare that total with the ordered quantity. Apply the same principle to sales orders and shipments.
-
-### Count shipments correctly
-
-One shipment can contain several product lines. Count distinct ShipmentNumber values when measuring the number of shipments.
-
-### Do not add stock across dates
-
-If the same 70 cartons remain on Monday and Tuesday, adding the snapshots gives 140. That is not the actual stock. Select the relevant date when reporting a stock balance.
-
-### Keep measurement units clear
-
-Do not add unlike units as though they were interchangeable. Product quantities in this example use cartons. Comparing physical capacity across different products would require weights or volume conversions.
-
-### Do not add unit prices
-
-Calculate line amount as quantity multiplied by unit price. Adding unit prices across rows does not produce a useful total purchase or sales amount.
-
-### Preserve agreed prices
-
-PurchaseUnitPrice and SellingUnitPrice belong to their order lines. A later change in a product's price should not change the interpretation of an old order.
-
-## 11. Proposed Validation Rules
-
-These are design requirements for a future implementation, not claims of implemented checks.
-
-- Order and dispatched quantities must be positive.
-- Accepted receipt quantities must be positive.
-- Confirmed delivered quantity must be between zero and dispatched quantity.
-- Prices cannot be negative.
-- QuantityOnHand cannot be negative.
-- QuantityReserved must be between zero and QuantityOnHand.
-- Accepted quantities cannot exceed the related order quantity in this simplified model.
-- Total dispatched quantities cannot exceed the related sales-order quantity.
-- Source order references must exist and match the associated dimension keys.
-- All lines within a shipment must agree on its order, customer, warehouse, driver, vehicle, and dispatch date.
-
-Some rules need checks across several rows. A simple foreign key or column CHECK constraint is not enough for all of them.
-
-## 12. Use of AI in This Project
-
-I used AI assistance to explore a fictional business process, discuss fact and dimension tables, and develop this draft design.
-
-The assumptions are stated explicitly because they have not been confirmed with a real company. In a real project, I would validate them with purchasing, warehouse, sales, and delivery staff before implementation.
-
-Useful questions to ask those teams include:
-
-- Can one order be delivered in parts?
-- Can goods arrive at a different warehouse from the one requested?
-- Can one shipment contain goods for several customer orders?
-- When is stock reserved and when is it deducted?
-- How are rejected goods, returns, and delivery failures recorded?
-
-## 13. Skills This Project Explores
-
-- Turning a business story into data requirements.
-- Distinguishing suppliers from customers.
-- Separating orders from physical receipts and shipments.
-- Defining one clear grain for each fact table.
-- Connecting shared dimensions to several business processes.
-- Recognizing partial receipts and partial deliveries.
-- Avoiding common double-counting mistakes.
-
-## 14. Next Steps
-
-- [ ] Review the assumptions with my instructor.
-- [ ] Choose a database system and implement the schema.
-- [ ] Add sample records covering partial receipts and partial deliveries.
-- [ ] Write queries for outstanding orders, delivered quantities, and available stock.
-- [ ] Test the proposed validation rules.
-- [ ] Add actual query results and screenshots after running the queries.
-- [ ] Extend the design with returns and a stock-movement ledger.
-
-## Acknowledgment
-
-This project follows the fact-and-dimension approach introduced in my database lessons. FlowLink, its business rules, and the sample transactions are fictional learning examples. The design and documentation were developed with AI assistance.
+This project applies the fact-and-dimension approach introduced in class. I used AI to help explore the business and draft the design. The company, assumptions, and example transactions are fictional and should be reviewed with my instructor.
