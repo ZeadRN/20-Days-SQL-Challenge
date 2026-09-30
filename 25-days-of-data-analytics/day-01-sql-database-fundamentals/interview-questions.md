@@ -1,94 +1,269 @@
-# Day 1: Interview Revision Questions
+# Day 1: Interview Questions and Simple Answers
 
-These questions support revision of the Day 1 topics. Some answers include additional explanations beyond the slides. I can cover the answers and practice explaining each concept aloud.
+These questions help me revise SQL and database fundamentals. My goal is to understand each answer and explain it in my own words.
 
 ## 1. What is the difference between a database and a DBMS?
 
-A database is an organized collection of data. A DBMS is the software used to store, retrieve, and manage that data.
+A **database** is an organized collection of data.
+
+A **DBMS** is software that helps us store, find, and change that data.
+
+**Example:** A shop's customer records are data in a database. MySQL is software that can manage the database.
 
 ## 2. What is an RDBMS?
 
-An RDBMS manages relational databases, where data is organized in tables. Keys connect records and constraints help enforce data integrity. Examples include PostgreSQL and MySQL.
+An RDBMS is a type of DBMS that stores data in related tables.
+
+Each table has rows and columns. Keys help connect the tables.
+
+**Example:** A Customers table and an Orders table can be connected using CustomerID.
+
+MySQL and PostgreSQL are examples of an RDBMS.
 
 ## 3. What is the difference between SQL and MySQL?
 
-SQL is a language for working with data. MySQL is a database management system that supports SQL. Other systems also implement SQL, with differences in syntax and features.
+**SQL** is a language used to work with data in databases.
 
-## 4. What are the SQL command categories?
+**MySQL** is database software that understands SQL.
 
-The lesson uses DDL for structures, DML for row changes, DQL for queries, DCL for permissions, and TCL for transactions. Example commands are CREATE, INSERT, SELECT, GRANT, and COMMIT. Some references include queries within DML.
+We write SQL commands and run them in a system such as MySQL.
 
-## 5. How do DELETE, TRUNCATE, and DROP differ?
+## 4. What are the main SQL command categories?
 
-DELETE removes rows and can filter them with WHERE. TRUNCATE removes all rows while keeping the table definition, subject to system-specific restrictions. DROP TABLE removes the table itself. Transaction and rollback behavior should be checked for the actual database system.
+| Category | Full Name | What It Does | Examples |
+|---|---|---|---|
+| DDL | Data Definition Language | Creates or changes database structures | CREATE, ALTER, DROP |
+| DQL | Data Query Language | Reads data | SELECT |
+| DML | Data Manipulation Language | Adds, changes, or removes records | INSERT, UPDATE, DELETE |
+| DCL | Data Control Language | Controls access | GRANT, REVOKE |
+| TCL | Transaction Control Language | Controls transactions | COMMIT, ROLLBACK, SAVEPOINT |
+
+**Note:** Some references include SELECT under DML instead of using a separate DQL category.
+
+## 5. What is the difference between DELETE, TRUNCATE, and DROP?
+
+- **DELETE:** Removes rows. We can use WHERE to choose which rows to remove.
+- **TRUNCATE:** Removes all rows but keeps the table structure.
+- **DROP TABLE:** Removes the entire table, including its structure and data.
+
+**Example:** Think of a table as a notebook:
+
+- DELETE removes selected entries.
+- TRUNCATE clears all entries but keeps the notebook.
+- DROP removes the notebook itself.
+
+Whether these actions can be rolled back depends on the database system and transaction context.
 
 ## 6. What is a primary key?
 
-A primary key uniquely identifies a row and cannot contain null values. It may consist of one or several columns. CustomerID is usually a better identifier than CustomerName because names can repeat or change.
+A primary key identifies each row in a table.
+
+Its values must be unique and cannot be NULL. NULL means a missing or unknown value.
+
+**Example:** Each customer can have a different CustomerID.
+
+Names are not a good choice because two customers can have the same name.
+
+A primary key can also use more than one column together.
 
 ## 7. What is a foreign key?
 
-A foreign key references a key in another table or the same table. It helps enforce referential integrity. Sales.CustomerID can reference Customers.CustomerID.
+A foreign key connects records by referring to a key in another table. It can also refer to the same table.
+
+**Example:** CustomerID in the Orders table refers to CustomerID in the Customers table.
+
+When this rule is enforced, an order cannot refer to a customer ID that does not exist.
 
 ## 8. What is a transaction?
 
-A transaction is a unit of work containing one or more operations. A bank transfer can group a debit and credit so that they succeed together or are rolled back together.
+A transaction is one or more database operations treated as a single unit of work.
 
-## 9. Explain ACID with a bank transfer.
+**Example:** Transferring money requires two changes:
 
-Atomicity means the debit and credit succeed together. Consistency means the transaction preserves defined rules, such as the correct combined balance. Isolation governs interactions with simultaneous transactions. Durability means committed changes persist according to the database's guarantees.
+1. Subtract money from one account.
+2. Add money to another account.
 
-## 10. How do COMMIT and ROLLBACK differ?
+These changes should succeed together. If the transfer fails, its changes should be undone.
 
-COMMIT completes a transaction and makes its changes permanent. ROLLBACK cancels uncommitted changes. A savepoint can mark a point for a partial rollback within a transaction.
+## 9. What are ACID properties?
 
-## 11. How do relational and NoSQL databases differ?
+ACID describes four properties that help database transactions work reliably.
 
-Relational databases organize data in related tables. NoSQL includes document, key-value, graph, and wide-column systems. Their schemas, query interfaces, and transaction guarantees vary. Neither category is automatically faster or better for every workload.
+### Atomicity
 
-## 12. How do a warehouse and a lake differ?
+All changes in a transaction succeed together, or they are undone together.
 
-A warehouse typically contains curated data organized for analysis and reporting. A lake can hold data in varied formats, often including raw data. A lakehouse combines lake-style storage with warehouse-style management and analytical capabilities.
+**Example:** A bank transfer should not subtract money from one account without adding it to the other.
+
+### Consistency
+
+A transaction must follow the database's defined rules.
+
+**Example:** A transfer without fees should keep the combined balance of the two accounts unchanged.
+
+The transaction must be written correctly, and the necessary rules must be defined.
+
+### Isolation
+
+Isolation controls how transactions affect each other when they run at the same time.
+
+**Example:** If two people withdraw money from the same account, the database needs rules for handling those overlapping operations.
+
+Different isolation levels provide different protections.
+
+### Durability
+
+Once a transaction is committed, its changes should remain saved, including after a system restart or crash covered by the database's guarantees.
+
+**Example:** A completed transfer should still be recorded after the database restarts.
+
+## 10. What is the difference between COMMIT, ROLLBACK, and SAVEPOINT?
+
+- **COMMIT:** Finishes a transaction and saves its changes permanently.
+- **ROLLBACK:** Undoes changes that have not been committed.
+- **SAVEPOINT:** Marks a point inside a transaction that we can return to.
+
+**Example:** We can create a savepoint before changing a salary. If we undo that salary change, earlier changes in the transaction can still remain.
+
+## 11. What is the difference between relational and NoSQL databases?
+
+Relational databases organize data in related tables.
+
+NoSQL databases use models such as documents, key-value pairs, graphs, or wide-column structures.
+
+**Examples:**
+
+- Relational: MySQL and PostgreSQL.
+- NoSQL: MongoDB and Neo4j.
+
+The better choice depends on the data and how it will be used. NoSQL is not automatically faster, and some NoSQL systems support ACID transactions.
+
+## 12. What is the difference between a data warehouse, a data lake, and a lakehouse?
+
+A **data warehouse** usually stores cleaned and organized data for reports and analysis.
+
+A **data lake** can store many types of data, often in their original form.
+
+A **lakehouse** combines lake-style storage with features that help manage data and run reliable analysis.
+
+**Example:**
+
+- Warehouse: Monthly sales data prepared for reporting.
+- Lake: Sales files, website logs, images, and customer feedback.
+- Lakehouse: Lake storage with managed tables for reporting and other uses.
 
 ## 13. What is ETL?
 
-ETL means Extract, Transform, Load. Data is collected from sources, prepared through steps such as cleaning or standardization, and loaded into a destination.
+ETL stands for **Extract, Transform, Load**.
 
-## 14. What is the logical processing order of a typical SELECT query?
+1. **Extract:** Collect data from its sources.
+2. **Transform:** Clean or change the data into the needed format.
+3. **Load:** Store the prepared data in the destination.
 
-A simplified order is FROM and joins, WHERE, GROUP BY, HAVING, SELECT, DISTINCT if present, ORDER BY, and row limiting. This describes the query's meaning rather than the optimizer's physical execution plan.
+**Example:** Collect sales files from several branches, standardize their date formats, and load them into a warehouse.
+
+## 14. What is the logical processing order of a SELECT query?
+
+A simplified order is:
+
+1. FROM and JOIN
+2. WHERE
+3. GROUP BY
+4. HAVING
+5. SELECT
+6. DISTINCT, if used
+7. ORDER BY
+8. LIMIT or another row limit
+
+This order helps explain how the query's result is formed.
+
+The database may use a different internal execution plan to produce that result.
 
 ## 15. What is the difference between WHERE and HAVING?
 
-WHERE filters rows before grouping. HAVING filters groups. WHERE Quantity >= 2 selects sales rows, while HAVING SUM(TotalAmount) > 1000 selects groups whose total exceeds 1,000.
+**WHERE** filters individual rows before grouping.
+
+**HAVING** filters groups after grouping.
+
+**Example:**
+
+- WHERE keeps sales where Quantity is at least 2.
+- HAVING keeps customer groups whose total sales are above 1,000.
 
 ## 16. What is normalization?
 
-Normalization organizes relational data around dependencies to reduce unnecessary repetition and modification anomalies. In the lesson, separating customers from sales allows current customer details to be maintained in one place.
+Normalization is a way of organizing database tables to reduce unnecessary repeated data and prevent problems when data changes.
+
+**Example:** Instead of writing a customer's current address in every sales row, we store it once in a Customers table.
+
+Sales records then connect to that customer using CustomerID.
 
 ## 17. What are update, insertion, and deletion anomalies?
 
-An update anomaly requires changing the same fact in multiple rows. An insertion anomaly makes it difficult to add a fact independently, such as a product without a sale. A deletion anomaly occurs when removing one fact also removes another, such as losing customer information when deleting the customer's only sale.
+An anomaly is a problem that can happen because of how data is organized.
 
-## 18. Why should an analyst understand table relationships?
+### Update anomaly
 
-Relationships determine how records match in joins. Unexpected multiple matches can duplicate amounts and inflate totals. I should understand the grain of each table and the uniqueness of its keys before joining.
+The same information needs to be changed in several rows.
 
-## 19. Why preserve the price charged on a historical sale?
+**Example:** A customer's phone number appears in five sales rows. Updating only four leaves conflicting phone numbers.
 
-A product's current price can change. Historical sales should preserve the transaction's price or amount so that reports do not reinterpret old purchases using today's prices.
+### Insertion anomaly
+
+We cannot easily add one piece of information without adding unrelated information.
+
+**Example:** A table requires sale details, so we cannot record a new product until someone buys it.
+
+### Deletion anomaly
+
+Deleting one record also removes other information we still need.
+
+**Example:** Deleting a customer's only sale removes the only stored copy of their contact details.
+
+## 18. Why should a data analyst understand table relationships?
+
+Relationships tell us how records match when we join tables.
+
+If a row matches more records than expected, an amount may appear multiple times and make the total too high.
+
+Before joining tables, I should check:
+
+- What does one row represent?
+- Which columns identify a record?
+- How many matches should each row have?
+
+## 19. Why should we keep the price charged at the time of a sale?
+
+Product prices can change.
+
+A sales report should use the price the customer actually paid.
+
+**Example:** A laptop sold for 500 last month. Its price is now 550. Last month's sale should still be reported using 500.
 
 ## 20. Does normalization always make queries faster?
 
-No. It can reduce repeated data and improve consistency, but retrieving information may require additional joins. Performance depends on design, indexes, data volume, and workload. Analytical systems may deliberately use denormalized structures.
+No.
 
-## Further-study questions
+Normalization can reduce repeated information and make updates easier. But reading the data may require joining more tables.
 
-The supplied normalization deck introduces table separation but does not formally define normal forms. My next questions are:
+Query speed also depends on factors such as indexes, data size, and how the query is written.
 
-- What is a functional dependency?
-- What are 1NF, 2NF, and 3NF?
-- How do partial and transitive dependencies differ?
-- How does dimensional modeling relate to normalization?
+## Topics to Study Next
+
+The normalization lesson introduced splitting data into related tables. My next topics are:
+
+- Functional dependencies
+- First Normal Form: 1NF
+- Second Normal Form: 2NF
+- Third Normal Form: 3NF
+- Normalization versus dimensional modeling
+
+## How I Will Practice
+
+1. Read a question.
+2. Cover the answer.
+3. Explain it aloud in a few sentences.
+4. Give one example.
+5. Check the answer and correct anything I missed.
 
 [Back to Day 1](README.md)
