@@ -73,39 +73,109 @@ For example, FactGoodsReceiptLine records how much of an ordered product was acc
 
 This is an analytical model with several fact tables sharing dimensions. It is designed for reporting and learning. It is not a complete operational order-processing application.
 
-## 5. ER Diagram
+## 5. ER Diagrams
 
-PK means primary key. FK means foreign key. The connecting lines show one-to-many relationships: one dimension record can appear in many fact rows.
+The design is shown in five smaller diagrams, one for each business activity.
+
+Repeated dimension names refer to the **same shared table**. For example, DimProduct is one table used across purchasing, receiving, sales, shipments, and inventory.
+
+**Reading the relationships:** One dimension record can connect to many fact rows. Each fact row refers to one record in each connected dimension.
+
+### 5.1 Purchasing — What did we order?
+
+**One fact row represents one product line on a purchase order.**
+
+Example: FlowLink orders 100 cartons of oil from FreshOil for its Dhaka warehouse.
 
 ```mermaid
 erDiagram
-    DimSupplier ||--o{ FactPurchaseOrderLine : supplies
-    DimProduct ||--o{ FactPurchaseOrderLine : ordered
-    DimWarehouse ||--o{ FactPurchaseOrderLine : planned_destination
-    DimDate ||--o{ FactPurchaseOrderLine : ordered_on
-
-    DimSupplier ||--o{ FactGoodsReceiptLine : supplies
-    DimProduct ||--o{ FactGoodsReceiptLine : received
-    DimWarehouse ||--o{ FactGoodsReceiptLine : receives
-    DimDate ||--o{ FactGoodsReceiptLine : received_on
-
-    DimCustomer ||--o{ FactSalesOrderLine : orders
-    DimProduct ||--o{ FactSalesOrderLine : requested
-    DimDate ||--o{ FactSalesOrderLine : ordered_on
-
-    DimCustomer ||--o{ FactShipmentLine : receives
-    DimProduct ||--o{ FactShipmentLine : shipped
-    DimWarehouse ||--o{ FactShipmentLine : dispatches
-    DimDriver ||--o{ FactShipmentLine : handles
-    DimVehicle ||--o{ FactShipmentLine : carries
-    DimDate ||--o{ FactShipmentLine : dispatched_on
-
-    DimProduct ||--o{ FactInventoryDaily : counted
-    DimWarehouse ||--o{ FactInventoryDaily : stores
-    DimDate ||--o{ FactInventoryDaily : recorded_on
+    direction LR
+    DimSupplier ||--o{ FactPurchaseOrderLine : supplier
+    DimProduct ||--o{ FactPurchaseOrderLine : product
+    DimWarehouse ||--o{ FactPurchaseOrderLine : destination
+    DimDate ||--o{ FactPurchaseOrderLine : order_date
 ```
 
-The diagram focuses on relationships. The sections below list the proposed columns so that the diagram stays readable.
+**Measurements:** QuantityOrdered and PurchaseUnitPrice.
+
+### 5.2 Receiving — What actually arrived?
+
+**One fact row represents one receipt line fulfilling a purchase-order line.**
+
+Example: 60 cartons arrive first. The remaining 40 arrive later. These are two separate receipt records.
+
+```mermaid
+erDiagram
+    direction LR
+    DimSupplier ||--o{ FactGoodsReceiptLine : supplier
+    DimProduct ||--o{ FactGoodsReceiptLine : product
+    DimWarehouse ||--o{ FactGoodsReceiptLine : received_at
+    DimDate ||--o{ FactGoodsReceiptLine : receipt_date
+```
+
+**Measurement:** QuantityAccepted.
+
+The purchase-order number and line number identify which ordered line the receipt fulfills.
+
+### 5.3 Customer Orders — What does the customer want?
+
+**One fact row represents one product line on a customer order.**
+
+Example: City Mart orders 30 cartons of oil at BDT 1,200 per carton.
+
+```mermaid
+erDiagram
+    direction LR
+    DimCustomer ||--o{ FactSalesOrderLine : customer
+    DimProduct ||--o{ FactSalesOrderLine : product
+    DimDate ||--o{ FactSalesOrderLine : order_date
+```
+
+**Measurements:** QuantityOrdered and SellingUnitPrice.
+
+### 5.4 Shipping — What did we send?
+
+**One fact row represents one shipment line fulfilling a sales-order line.**
+
+Example: Hasan dispatches 20 cartons first. Karim dispatches the remaining 10 later.
+
+```mermaid
+erDiagram
+    direction LR
+    DimCustomer ||--o{ FactShipmentLine : customer
+    DimProduct ||--o{ FactShipmentLine : product
+    DimWarehouse ||--o{ FactShipmentLine : origin
+    DimDriver ||--o{ FactShipmentLine : driver
+    DimVehicle ||--o{ FactShipmentLine : vehicle
+    DimDate ||--o{ FactShipmentLine : dispatch_date
+```
+
+**Measurements:** QuantityDispatched and QuantityDelivered.
+
+The sales-order number and line number identify which customer order line is being fulfilled.
+
+A shipment containing several products has several fact rows sharing the same shipment number.
+
+### 5.5 Inventory — What stock remains?
+
+**One fact row represents one product at one warehouse at the end of one date.**
+
+Example: After receiving 100 cartons and dispatching 30, the warehouse has 70 cartons left, assuming no other stock movements.
+
+```mermaid
+erDiagram
+    direction LR
+    DimProduct ||--o{ FactInventoryDaily : product
+    DimWarehouse ||--o{ FactInventoryDaily : warehouse
+    DimDate ||--o{ FactInventoryDaily : snapshot_date
+```
+
+**Measurements:** QuantityOnHand and QuantityReserved.
+
+AvailableQuantity = QuantityOnHand - QuantityReserved.
+
+The following sections list the table columns, primary keys, and foreign keys.
+ 
 
 ## 6. Dimension Tables
 
