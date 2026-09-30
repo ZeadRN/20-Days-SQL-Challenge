@@ -1,335 +1,764 @@
 # Day 1: SQL and Database Fundamentals
 
-Today I studied how databases organize data, how SQL interacts with relational databases, and why database design matters for reliable analysis.
+Day 1 of my 25-day data analytics learning series focused on understanding databases, SQL commands, transactions, and the basics of database design.
 
-**Learning activity:** Tutorial study and conceptual revision. SQL examples in these notes illustrate the concepts and are not presented as completed hands-on exercises.
+These notes summarize what I studied through tutorials, with examples for revision and technical interview preparation.
 
-## Contents
+> Learning status: Conceptual study. The SQL examples illustrate the concepts; they are not a record of completed practical exercises.
 
-1. Database, DBMS, and RDBMS
-2. SQL command categories
-3. Keys and relationships
-4. Transactions and ACID
-5. SQL and NoSQL databases
-6. Data warehouses, lakes, and lakehouses
-7. Logical processing order of SQL queries
-8. Introduction to normalization
-9. Relevance to data analysis
-10. Revision and next steps
+## Topics Covered
 
-Related materials: [Normalization example](normalization-example.md) · [Interview questions and answers](interview-questions.md)
+- Database, DBMS, and RDBMS
+- Tables, keys, and constraints
+- SQL command categories: DDL, DQL, DML, DCL, and TCL
+- Transactions and ACID properties
+- SQL versus NoSQL
+- Data warehouses, data lakes, and lakehouses
+- Logical processing order of SQL queries
+- Data redundancy and normalization
 
-## 1. Database, DBMS, and RDBMS
+---
 
-### Database
+## 1. Database Fundamentals
 
-A database is an organized collection of data. A retail business might store customer details, product information, and sales transactions in a database.
+### What is a database?
 
-### Database Management System (DBMS)
+A database is an organized collection of data.
 
-A DBMS is software used to create, store, retrieve, and manage data in a database. Depending on the system, it also provides facilities such as access control, backup, and transaction management.
+For example, a retail business might maintain information about its customers, products, orders, and payments.
 
-The database contains the data. The DBMS manages it.
+### What is a DBMS?
 
-### Relational Database Management System (RDBMS)
+A **Database Management System (DBMS)** is software used to create, access, and manage databases.
 
-An RDBMS manages relational databases. Data is organized in tables with rows and columns, and keys connect related records.
+The database holds the data. The DBMS provides tools for working with it.
 
-| Term | Meaning | Retail example |
-| --- | --- | --- |
-| Table | A collection of records about a subject | Customers |
-| Row | One record in a table | One customer |
-| Column | An attribute of a record | CustomerCity |
-| Schema | The defined structure of database objects | Tables, columns, data types, and constraints |
+### What is an RDBMS?
 
-Examples from the lesson include MySQL, PostgreSQL, Oracle Database, and Microsoft SQL Server.
+A **Relational Database Management System (RDBMS)** manages data organized into related tables.
 
-Relational systems support constraints, transactions, and complex queries. Indexes can improve retrieval performance, although their usefulness depends on the query and workload.
+Tables contain rows and columns, while keys connect records across tables.
 
-## 2. SQL command categories
+Examples:
 
-**SQL means Structured Query Language.** It is used to define structures, retrieve and modify data, manage access, and control transactions.
+- MySQL
+- PostgreSQL
+- Microsoft SQL Server
+- Oracle Database
 
-SQL is a language. MySQL is a database management system that implements SQL.
+### Basic terminology
 
-| Category | Full name | Purpose | Examples |
-| --- | --- | --- | --- |
-| DDL | Data Definition Language | Define or change structures | CREATE, ALTER, DROP, TRUNCATE |
-| DML | Data Manipulation Language | Add, change, or remove rows | INSERT, UPDATE, DELETE |
-| DQL | Data Query Language | Retrieve data | SELECT |
-| DCL | Data Control Language | Manage permissions | GRANT, REVOKE |
-| TCL | Transaction Control Language | Manage transactions | COMMIT, ROLLBACK, SAVEPOINT |
+| Term | Meaning | Example |
+|---|---|---|
+| Table | A collection of related records | `Customers` |
+| Row / Record | One entry in a table | One customer's details |
+| Column / Field | An attribute of a record | `CustomerName` |
+| Schema | The defined structure of database objects | Tables, columns, types, and constraints |
+| Query | A request to retrieve or work with data | Retrieve customers from Dhaka |
+| Constraint | A rule enforced on data | A customer ID must be unique |
 
-These are common teaching categories. Some references include SELECT within DML instead of treating DQL as a separate category.
+---
 
-### Example: reading customer data
-
-```sql
-SELECT CustomerName, CustomerCity
-FROM Customers
-WHERE CustomerCity = 'Dhaka';
-```
-
-This illustrative query returns names and cities for customers whose city is Dhaka. It assumes the table already exists.
-
-### DELETE, TRUNCATE, and DROP
-
-- `DELETE` removes rows and can use a `WHERE` condition.
-- `TRUNCATE` removes all rows while retaining the table definition. Its restrictions and transaction behavior depend on the database system.
-- `DROP TABLE` removes the table itself, including its definition and data.
-
-I should check the specific database's behavior before making claims about rollback, identity values, or performance.
-
-## 3. Keys and relationships
-
-This section expands the keys introduced in the lesson and used in the normalization example.
+## 2. Keys and Constraints
 
 ### Primary key
 
-A primary key uniquely identifies each row. Primary-key values must be unique and cannot be null. A primary key can consist of one column or multiple columns.
+A primary key uniquely identifies each row in a table.
 
-For example, CustomerID identifies a customer. CustomerName is a poor identifier because different people can share a name, and names can change.
+- Its values must be unique.
+- It cannot contain `NULL`.
+- It can consist of one column or multiple columns.
+
+For example, `CustomerID` can identify each customer.
+
+A name is usually a poor primary key because different people can share the same name.
 
 ### Foreign key
 
-A foreign key references a key in another table, or sometimes the same table. When enforced, it helps prevent references to records that do not exist.
+A foreign key references a key in another table or, in some cases, the same table.
 
-For example, Sales.CustomerID references Customers.CustomerID.
-
-### One-to-many relationship
-
-One customer can have many sales records. Each sale in the lesson references one customer.
+For example:
 
 ```text
-Customers.CustomerID  1 ---- many  Sales.CustomerID
-Products.ProductID   1 ---- many  Sales.ProductID
+Customers.CustomerID ← Sales.CustomerID
 ```
 
-Before joining tables, I need to know how many matches each row can have. Unexpected multiple matches can duplicate amounts and inflate a report's totals.
+An enforced foreign key helps prevent a sale from referencing a customer who does not exist.
 
-## 4. Transactions and ACID
+### Common constraints
 
-A transaction is a unit of work containing one or more database operations. ACID describes properties that help transactions behave reliably.
+| Constraint | Purpose |
+|---|---|
+| `PRIMARY KEY` | Uniquely identifies each row |
+| `FOREIGN KEY` | Enforces a reference to another record |
+| `NOT NULL` | Requires a value |
+| `UNIQUE` | Prevents duplicate values or combinations, subject to the database's NULL rules |
+| `CHECK` | Enforces a condition, such as a nonnegative price |
+
+### Why this matters for analysis
+
+Keys and relationships determine how tables connect.
+
+If I join tables without understanding their relationships, I may duplicate rows and overstate totals.
+
+---
+
+## 3. What Is SQL?
+
+**SQL stands for Structured Query Language.**
+
+It is used to:
+
+- Define database structures.
+- Retrieve records.
+- Insert, update, and delete data.
+- Manage access permissions.
+- Control transactions.
+
+### SQL versus MySQL
+
+SQL is a language.
+
+MySQL is a database management system that supports SQL. PostgreSQL, SQL Server, and Oracle also support SQL, with differences in syntax and features.
+
+---
+
+## 4. SQL Command Categories
+
+SQL commands are commonly taught in five categories:
+
+| Category | Full Name | Main Purpose | Examples |
+|---|---|---|---|
+| DDL | Data Definition Language | Define database structures | `CREATE`, `ALTER`, `DROP`, `TRUNCATE` |
+| DQL | Data Query Language | Retrieve data | `SELECT` |
+| DML | Data Manipulation Language | Change stored data | `INSERT`, `UPDATE`, `DELETE` |
+| DCL | Data Control Language | Manage access | `GRANT`, `REVOKE` |
+| TCL | Transaction Control Language | Manage transactions | `BEGIN`, `COMMIT`, `ROLLBACK`, `SAVEPOINT` |
+
+> These are useful teaching categories. Some references classify `SELECT` under DML instead of using a separate DQL category.
+
+### About the examples
+
+The examples below use PostgreSQL-style syntax and an `employees` table.
+
+They are individual demonstrations, not one script to execute from beginning to end. Examples involving permissions assume the referenced role already exists.
+
+---
+
+## 5. DDL: Data Definition Language
+
+DDL changes the structure of database objects.
+
+### CREATE
+
+Creates an object, such as a table.
+
+```sql
+CREATE TABLE employees (
+    employee_id INT PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    department VARCHAR(50),
+    salary NUMERIC(12, 2) CHECK (salary >= 0),
+    hire_date DATE
+);
+```
+
+This defines the columns, data types, and constraints of the table.
+
+### ALTER
+
+Changes an existing table's structure.
+
+```sql
+ALTER TABLE employees
+ADD COLUMN email VARCHAR(100);
+```
+
+This adds an email column.
+
+### DROP
+
+Removes a database object.
+
+```sql
+DROP TABLE employees;
+```
+
+This removes the table, including its definition and data.
+
+### TRUNCATE
+
+Removes all rows while keeping the table definition.
+
+```sql
+TRUNCATE TABLE employees;
+```
+
+Restrictions, storage behavior, and transaction behavior depend on the database system.
+
+### COMMENT
+
+Adds descriptive metadata where supported.
+
+```sql
+COMMENT ON TABLE employees
+IS 'Employee details for SQL learning examples';
+```
+
+### Rename a table
+
+Renaming syntax differs across database systems. In PostgreSQL:
+
+```sql
+ALTER TABLE employees
+RENAME TO staff;
+```
+
+### Main takeaway
+
+DDL describes or changes the structures that hold data.
+
+---
+
+## 6. DQL: Data Query Language
+
+DQL retrieves data using `SELECT`.
+
+### SELECT
+
+```sql
+SELECT first_name, last_name, department
+FROM employees;
+```
+
+This retrieves selected columns from the table.
+
+### SELECT and its related clauses
+
+`SELECT` is the statement. Terms such as `FROM`, `WHERE`, and `ORDER BY` are parts of that statement, not separate commands.
+
+| Clause or Keyword | Purpose |
+|---|---|
+| `FROM` | Identifies the source tables |
+| `WHERE` | Filters individual rows |
+| `GROUP BY` | Forms groups of rows |
+| `HAVING` | Filters groups |
+| `DISTINCT` | Removes duplicate output rows |
+| `ORDER BY` | Sorts the result |
+| `LIMIT` | Restricts the number of returned rows in supported systems |
+
+### Filtering with WHERE
+
+```sql
+SELECT first_name, department
+FROM employees
+WHERE department = 'Sales';
+```
+
+Returns employees in the Sales department.
+
+### Removing duplicates with DISTINCT
+
+```sql
+SELECT DISTINCT department
+FROM employees;
+```
+
+Returns distinct department values.
+
+When multiple columns are selected, `DISTINCT` applies to the complete combination of selected values.
+
+### Sorting with ORDER BY
+
+```sql
+SELECT first_name, salary
+FROM employees
+ORDER BY salary DESC, employee_id;
+```
+
+Returns employees from highest to lowest salary, using employee ID to break ties.
+
+### Grouping with GROUP BY
+
+```sql
+SELECT
+    department,
+    COUNT(*) AS employee_count
+FROM employees
+GROUP BY department;
+```
+
+Counts employees in each department.
+
+### Filtering groups with HAVING
+
+```sql
+SELECT
+    department,
+    COUNT(*) AS employee_count
+FROM employees
+GROUP BY department
+HAVING COUNT(*) > 5;
+```
+
+Returns departments with more than five employees.
+
+### Limiting output
+
+```sql
+SELECT employee_id, first_name, salary
+FROM employees
+ORDER BY salary DESC, employee_id
+LIMIT 5;
+```
+
+Returns up to five employees with the highest salaries.
+
+`LIMIT` is supported by PostgreSQL and MySQL. Other systems may use different syntax.
+
+### WHERE versus HAVING
+
+| WHERE | HAVING |
+|---|---|
+| Filters individual rows | Filters groups |
+| Applied before grouping | Applied after grouping |
+| Example: employees in Sales | Example: departments with more than five employees |
+
+---
+
+## 7. DML: Data Manipulation Language
+
+DML changes the records stored in tables.
+
+### INSERT
+
+Adds new rows.
+
+```sql
+INSERT INTO employees (
+    employee_id,
+    first_name,
+    last_name,
+    department,
+    salary,
+    hire_date
+)
+VALUES (
+    1,
+    'Amina',
+    'Rahman',
+    'Sales',
+    45000.00,
+    '2026-01-15'
+);
+```
+
+### UPDATE
+
+Changes existing rows.
+
+```sql
+UPDATE employees
+SET department = 'Marketing'
+WHERE employee_id = 1;
+```
+
+This changes one employee's department.
+
+Without a `WHERE` condition, the update applies to all rows.
+
+### DELETE
+
+Removes rows.
+
+```sql
+DELETE FROM employees
+WHERE employee_id = 1;
+```
+
+Without a `WHERE` condition, `DELETE` removes all rows from the table.
+
+### DELETE versus TRUNCATE versus DROP
+
+| Command | Effect | Supports WHERE? | Keeps Table Definition? |
+|---|---|---|---|
+| `DELETE` | Removes matching rows | Yes | Yes |
+| `TRUNCATE` | Removes all rows | No | Yes |
+| `DROP TABLE` | Removes the table itself | No | No |
+
+Rollback behavior and other details depend on the database system and transaction context.
+
+---
+
+## 8. DCL: Data Control Language
+
+DCL manages privileges on database objects.
+
+### GRANT
+
+Gives privileges to a user or role.
+
+```sql
+GRANT SELECT ON employees TO analyst_role;
+```
+
+This grants the role permission to read the table.
+
+### REVOKE
+
+Removes a grant.
+
+```sql
+REVOKE SELECT ON employees FROM analyst_role;
+```
+
+Other grants or role memberships may still provide access.
+
+### Why this matters for analysts
+
+An analyst may need permission to read data without permission to modify it. Access can be assigned according to the work the role needs to perform.
+
+**Interview example:** Which SQL category manages access permissions?
+
+**Answer:** DCL.
+
+---
+
+## 9. TCL: Transaction Control Language
+
+A transaction groups operations into one unit of work.
+
+### Main commands
+
+| Command | Purpose |
+|---|---|
+| `BEGIN` | Starts a transaction |
+| `COMMIT` | Completes the transaction and makes changes permanent |
+| `ROLLBACK` | Cancels uncommitted changes |
+| `SAVEPOINT` | Marks a point within a transaction |
+| `ROLLBACK TO SAVEPOINT` | Reverses changes made after that point |
+
+### Example with a savepoint
+
+```sql
+BEGIN;
+
+UPDATE employees
+SET department = 'Marketing'
+WHERE employee_id = 1;
+
+SAVEPOINT before_salary_change;
+
+UPDATE employees
+SET salary = 50000.00
+WHERE employee_id = 1;
+
+ROLLBACK TO SAVEPOINT before_salary_change;
+
+COMMIT;
+```
+
+Assuming the employee exists:
+
+1. The department changes to Marketing.
+2. A savepoint is created.
+3. The salary changes.
+4. Rolling back to the savepoint reverses the salary change.
+5. Committing saves the department change.
+
+### Main takeaway
+
+Rolling back to a savepoint can undo part of a transaction. A full rollback cancels the transaction's uncommitted changes.
+
+---
+
+## 10. ACID Properties
+
+ACID describes properties that help transactions behave reliably.
 
 Consider transferring 50 from account A to account B:
 
-| Account | Before | After a successful transfer |
-| --- | ---: | ---: |
+| Account | Before | After |
+|---|---:|---:|
 | A | 100 | 50 |
 | B | 20 | 70 |
 | Combined balance | 120 | 120 |
 
 ### Atomicity
 
-The changes succeed together or are rolled back together. A failed transfer should not leave A debited without crediting B.
+The transaction's changes succeed together or are rolled back together.
+
+The transfer should not leave A debited without crediting B.
 
 ### Consistency
 
-A successful transaction preserves the database's defined rules. In this example, a correctly implemented transfer preserves the combined balance, assuming no fees or other operations.
+A successful transaction preserves the database's defined rules.
 
-Consistency requires appropriate constraints and correct application logic. The database cannot infer every business rule automatically.
+In this example, a correctly implemented transfer preserves the combined balance, assuming no fees or other operations.
+
+Correct constraints and application logic are still necessary.
 
 ### Isolation
 
-Isolation governs how concurrent transactions interact and what changes they can observe. Different isolation levels provide different guarantees.
+Isolation governs interactions between concurrent transactions.
 
-For example, simultaneous withdrawals and deposits should behave according to the guarantees selected for the application.
+Different isolation levels provide different guarantees about what transactions can observe.
 
 ### Durability
 
-Once a transaction commits, its changes persist according to the database's durability guarantees, including recovery from supported failure scenarios.
+Committed changes persist according to the database's durability guarantees, including recovery from supported failure scenarios.
 
-### Transaction commands
+### Quick revision
 
-| Command | Meaning |
-| --- | --- |
-| COMMIT | Complete the transaction and make its changes permanent |
-| ROLLBACK | Cancel uncommitted changes |
-| SAVEPOINT | Mark a point within a transaction that can be rolled back to |
+| Property | Meaning |
+|---|---|
+| Atomicity | Changes succeed or roll back together |
+| Consistency | Defined rules remain satisfied |
+| Isolation | Concurrent interactions follow selected guarantees |
+| Durability | Committed changes persist |
 
-**Clarification:** ACID concerns transaction reliability. It does not replace security controls such as authentication and authorization.
+ACID concerns transaction reliability. Authentication and authorization address separate security needs.
 
-## 5. SQL and NoSQL databases
+---
 
-In comparisons, “SQL databases” usually refers to relational databases that use SQL. NoSQL covers several database families with different data models.
+## 11. SQL versus NoSQL
 
-| Aspect | Relational databases | NoSQL databases |
-| --- | --- | --- |
-| Data organization | Related tables | Documents, key-value pairs, graphs, or wide-column models |
-| Schema | Explicit table structures that can evolve | Flexibility varies by system |
-| Query interface | SQL, with system-specific differences | Languages and APIs vary |
-| Examples | MySQL, PostgreSQL, Oracle, SQL Server | MongoDB, Cassandra, CouchDB, Neo4j |
+In this comparison, “SQL databases” usually means relational databases that use SQL.
 
-### NoSQL models introduced in the lesson
+NoSQL includes several database families.
 
-- **Key-value:** Retrieve a value through a key.
-- **Document:** Store records as documents, potentially with nested fields.
-- **Graph:** Represent entities and connections using nodes and edges.
-- **Wide-column:** Organize data using a column-family model.
+| Aspect | Relational Databases | NoSQL Databases |
+|---|---|---|
+| Typical model | Related tables | Documents, key-value pairs, graphs, or wide-column models |
+| Schema | Explicit structures that can evolve | Flexibility varies by system |
+| Query interface | SQL with system-specific differences | Languages and APIs vary |
+| Examples | PostgreSQL, MySQL, SQL Server | MongoDB, Cassandra, Neo4j |
 
-### Clarifications for revision
+### Common NoSQL models
 
-Relational databases are not limited to vertical scaling. NoSQL systems are not universally faster, and some support ACID transactions. Flexible schemas still require careful data design.
+- **Key-value:** Values are accessed through keys.
+- **Document:** Records can contain nested document structures.
+- **Graph:** Data represents entities and their relationships.
+- **Wide-column:** Data uses a column-family model.
 
-The wide-column NoSQL model is also distinct from the column-oriented storage used by many analytical databases.
+### Important distinctions
 
-The appropriate system depends on data relationships, access patterns, transaction needs, and operational requirements.
+- Relational databases are not limited to vertical scaling.
+- NoSQL systems are not automatically faster.
+- Some NoSQL systems support ACID transactions.
+- Flexible schemas still require careful design.
 
-## 6. Data warehouses, lakes, and lakehouses
+The choice depends on the data model, access patterns, transaction requirements, and workload.
+
+---
+
+## 12. Data Warehouse, Data Lake, and Lakehouse
 
 ### Data warehouse
 
-A warehouse brings together data for analysis and reporting. It typically contains curated data organized around business questions and consistent definitions.
+A warehouse typically contains curated data organized for reporting and analysis.
 
-**Example:** Combining branch sales to produce monthly revenue reports.
+**Example:** Combining branch sales to produce monthly business reports.
 
 ### Data lake
 
-A lake stores data in varied formats, often including raw data. It can hold structured tables, semi-structured data such as JSON, and unstructured content such as images.
+A lake stores data in varied formats, often including raw data.
 
-**Example:** Keeping sales extracts, application logs, and customer feedback for different future analyses.
+**Example:** Storing sales files, JSON logs, images, and customer feedback for different uses.
 
 ### Data lakehouse
 
-A lakehouse combines lake-style storage with management and analytical capabilities associated with warehouses, such as governed tables and transaction support.
+A lakehouse combines lake-style storage with management and analytical capabilities associated with warehouses.
 
 ### ETL
 
-The lesson's architecture diagram includes **Extract, Transform, Load**:
+**ETL means Extract, Transform, Load.**
 
-1. Extract data from source systems.
-2. Transform it through operations such as cleaning or standardizing values.
-3. Load the prepared data into a destination.
+1. Extract data from sources.
+2. Transform it through cleaning or standardization.
+3. Load it into a destination.
 
-These are introductory distinctions. Actual platforms can overlap in their capabilities.
+Actual platforms can overlap in their capabilities.
 
-## 7. Logical processing order of SQL queries
+---
 
-SQL's written order differs from the logical order used to understand its result.
+## 13. Logical Processing Order of SQL
 
-**Typical written order:**
+The order in which SQL is written differs from its logical processing order.
 
-```text
-SELECT
-FROM
-WHERE
-GROUP BY
-HAVING
-ORDER BY
-LIMIT
-```
-
-**Simplified logical processing order:**
-
-```text
-FROM and JOIN conditions
-WHERE
-GROUP BY
-HAVING
-SELECT
-DISTINCT, if present
-ORDER BY
-LIMIT or equivalent row limiting
-```
-
-### Example
+### Written order
 
 ```sql
-SELECT CustomerID, SUM(TotalAmount) AS TotalSpent
-FROM Sales
-WHERE Quantity >= 2
-GROUP BY CustomerID
-HAVING SUM(TotalAmount) > 1000
-ORDER BY TotalSpent DESC
+SELECT department, COUNT(*) AS employee_count
+FROM employees
+WHERE salary >= 30000
+GROUP BY department
+HAVING COUNT(*) >= 2
+ORDER BY employee_count DESC, department
 LIMIT 5;
 ```
 
-This illustrative query uses LIMIT syntax, supported by systems such as PostgreSQL and MySQL. Other systems can use different row-limiting syntax.
+### Simplified logical order
 
-Reading it logically:
+1. `FROM` and joins identify the source rows.
+2. `WHERE` filters rows.
+3. `GROUP BY` forms groups.
+4. `HAVING` filters groups.
+5. `SELECT` produces output expressions.
+6. `DISTINCT`, when present, removes duplicate output rows.
+7. `ORDER BY` sorts the result.
+8. `LIMIT` or equivalent syntax restricts the output.
 
-1. Start with Sales.
-2. Keep rows where quantity is at least two.
-3. Group the remaining rows by customer.
-4. Keep groups with a total above 1,000.
-5. Produce the customer ID and calculated total.
-6. Sort totals from highest to lowest.
-7. Return up to five rows.
+In this example, the counts include only employees whose salary meets the `WHERE` condition.
 
-Here, TotalSpent measures spending on qualifying sales rows, not necessarily the customer's complete purchase history.
+> Logical processing order explains the query's meaning. The optimizer may choose a different physical execution plan.
 
-### WHERE versus HAVING
+---
 
-WHERE filters individual rows before grouping. HAVING filters groups after grouping.
-
-**Clarification:** This is logical processing order. The optimizer may choose a different physical execution plan while preserving the query's meaning.
-
-## 8. Introduction to normalization
+## 14. Introduction to Normalization
 
 Normalization organizes relational data around dependencies to reduce unnecessary repetition and modification anomalies.
 
-The lesson starts with a sales table containing customer details, product descriptions, and transaction values. The same customer's details appear in several rows.
+### Original sales table
 
-If Rahim changes his current city or phone number, several rows need updating. Missing one could leave conflicting information.
+The lesson's retail example repeats customer and product details across sales.
 
-The lesson separates the data into:
+| OrderID | CustomerName | CustomerCity | ProductName | Price | Quantity | TotalAmount |
+|---|---|---|---|---:|---:|---:|
+| 1 | Rahim Uddin | Dhaka | Laptop | 500 | 2 | 1000 |
+| 3 | Rahim Uddin | Dhaka | Tablet | 200 | 3 | 600 |
+| 8 | Rahim Uddin | Dhaka | Laptop | 500 | 1 | 500 |
 
-- DimCustomer for customer details.
-- DimProduct for product details.
-- FactSales for sales records containing customer and product references.
+Amounts are illustrative; the lesson does not specify a currency.
 
-See the [worked normalization example](normalization-example.md) for the tables and reasoning.
+### The problem
 
-### Anomalies
+If Rahim changes his current city, several records need updating.
+
+Updating only one row could leave conflicting details.
+
+### Common anomalies
 
 | Anomaly | Example |
-| --- | --- |
-| Update | Changing the same customer's current city in several sales rows |
-| Insertion | Being unable to add a product independently because the only table requires a sale |
-| Deletion | Losing the only stored customer details when deleting that customer's last sale |
+|---|---|
+| Update | The same customer's city must be changed in several rows |
+| Insertion | Adding a product is difficult if every row must include a sale |
+| Deletion | Removing a customer's only sale also removes their only stored details |
 
-**Clarifications:** Normalization organizes dependencies rather than eliminating all dependencies. A reduction in the number of table cells does not establish actual storage savings.
+### Separating the data
 
-The supplied deck demonstrates decomposition through an example. Formal definitions of 1NF, 2NF, and 3NF are further-study topics rather than topics explicitly covered in that deck.
+```text
+Customers
+- CustomerID
+- CustomerName
+- CustomerCity
+- PhoneNo
 
-## 9. Relevance to data analysis
+Products
+- ProductID
+- ProductName
+- Price
 
-Before analyzing data, I need to understand its **grain**, meaning what one row represents. I also need to know its keys and relationships.
+Sales
+- OrderID
+- CustomerID
+- ProductID
+- Quantity
+- TotalAmount
+```
 
-This helps me:
+Customer details can now be maintained in one customer record, while sales reference the customer through CustomerID.
 
-- Choose joins that match the business question.
-- Avoid duplicate counting.
-- Recognize conflicting customer information.
-- Distinguish current attributes from historical transaction facts.
-- Interpret aggregates correctly.
+### Additional design considerations
 
-For example, using a product's current price to recalculate an older sale can misstate historical revenue. Database design influences whether the information needed for an accurate report is available.
+- A customer's current city is different from an old order's shipping destination.
+- Historical sales should preserve the price or amount charged at the time.
+- An order containing multiple products usually needs separate order-line records.
+- Fewer table cells do not automatically prove lower storage usage.
+- Normalization organizes dependencies rather than removing all dependencies.
 
-## 10. Revision and next steps
+The supplied lesson introduces decomposition through an example. Formal definitions of 1NF, 2NF, and 3NF are topics for further study.
 
-### Self-check
+---
 
-- [ ] Explain database, DBMS, and RDBMS without reading these notes.
-- [ ] Give an example from each SQL command category.
-- [ ] Explain ACID through a bank transfer.
-- [ ] Identify primary and foreign keys in the retail example.
-- [ ] Explain WHERE versus HAVING.
-- [ ] Describe the logical processing order of a query.
-- [ ] Explain how table separation addresses an update anomaly.
-- [ ] Explain warehouse, lake, and lakehouse in plain language.
+## 15. Why This Matters for Data Analysis
 
-### Further practice
+Understanding database fundamentals helps me reason about the data before calculating results.
 
-- Implement the retail example in a chosen database system.
-- Join the customer, product, and sales tables.
-- Calculate sales by customer and compare against a manual calculation.
-- Study functional dependencies and the first three normal forms.
+Before writing an analysis, I should ask:
 
-## Sources and scope
+1. What does one row represent?
+2. Which columns identify records?
+3. How do the tables relate?
+4. Can a join produce multiple matches?
+5. Does an attribute describe the current state or a historical event?
+6. Does my query measure the business question correctly?
 
-Based on **Class 1: Introduction to SQL and Database Fundamentals** and **Normalization**. The introductory deck credits **Tanvir Taushif**.
+These questions help prevent duplicate counting, misleading totals, and incorrect interpretations.
 
-These notes paraphrase the tutorials. Explanations about keys, anomalies, historical prices, and common simplifications expand on the lesson for revision. They do not imply that every detail appeared in the tutorials.
+---
 
-[Back to learning log](../README.md)
+## 16. Interview Revision
+
+### What is the difference between a database and a DBMS?
+
+A database contains organized data. A DBMS is the software used to manage it.
+
+### What is the difference between SQL and MySQL?
+
+SQL is a language. MySQL is a database management system that supports it.
+
+### What is the difference between DDL and DML?
+
+DDL changes database structures. DML changes stored records.
+
+### Are WHERE and ORDER BY separate SQL commands?
+
+They are clauses used within statements such as SELECT.
+
+### What is the difference between WHERE and HAVING?
+
+WHERE filters rows before grouping. HAVING filters groups.
+
+### Which command category manages permissions?
+
+DCL, including GRANT and REVOKE.
+
+### What does ACID stand for?
+
+Atomicity, Consistency, Isolation, and Durability.
+
+### What is the difference between a primary key and a foreign key?
+
+A primary key identifies a row. A foreign key references a key in another table or the same table.
+
+### Why is normalization useful?
+
+It reduces unnecessary repetition and helps avoid update, insertion, and deletion anomalies.
+
+### Does normalization always make queries faster?
+
+No. Performance depends on the design, indexes, data volume, and workload. Retrieving data may require additional joins.
+
+---
+
+## 17. Next Steps
+
+- [ ] Create a practice database and tables.
+- [ ] Practice SELECT, WHERE, DISTINCT, and ORDER BY.
+- [ ] Practice INSERT, UPDATE, and DELETE.
+- [ ] Test COMMIT, ROLLBACK, and SAVEPOINT.
+- [ ] Implement the retail normalization example.
+- [ ] Study functional dependencies, 1NF, 2NF, and 3NF.
+- [ ] Add executed SQL scripts and verified results to this repository.
+
+---
+
+## Resources and Acknowledgments
+
+- **Class 1: Introduction to SQL and Database Fundamentals** — tutorial slides identifying the instructor as Tanvir Taushif.
+- **Normalization** — supplied tutorial slides.
+- [GeeksforGeeks: SQL Commands — DDL, DQL, DML, DCL and TCL](https://www.geeksforgeeks.org/sql/sql-ddl-dql-dml-dcl-tcl-commands/)
+
+These notes paraphrase the learning materials and include additional explanations for revision. The examples use a consistent schema and identify database-specific syntax where relevant.
