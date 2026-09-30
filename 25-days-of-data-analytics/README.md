@@ -1,4 +1,4 @@
-# 25 Days of Data Analytics Learning
+# 20 Days of Data Analytics Learning
 
 I am documenting my learning as I build the foundations for becoming a data analyst. This repository contains daily notes, examples, and interview revision questions from my 25-day learning series.
 
