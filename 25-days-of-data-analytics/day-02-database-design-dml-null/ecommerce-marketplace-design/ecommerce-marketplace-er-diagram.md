@@ -56,7 +56,7 @@ The model contains **seven dimension tables and six fact tables**. The complete 
 
 ```mermaid
 erDiagram
-    direction LR
+    direction TB
     DimCustomer ||--o{ FactOrderLine : buyer
     DimSeller ||--o{ FactOrderLine : seller
     DimProduct ||--o{ FactOrderLine : product
